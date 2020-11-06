@@ -3,3 +3,7 @@ repositories:
     type: git
     url: https://github.com/Briancbn/ur_msgs.git
     version: ros2-devel
+  ur_client_library:
+    type: git
+    url: https://github.com/Briancbn/Universal_Robots_Client_Library.git
+    version: ros2-fix
