@@ -9,14 +9,14 @@ clang-format:
   variables:
     CLANG_FORMAT_CHECK: "file"
     CLANG_FORMAT_VERSION: "6.0"
-    ROS_DISTRO: "kinetic"
+    ROS_DISTRO: "foxy"
   script: .industrial_ci/gitlab.sh
 
-build_kinetic:
+build_foxy:
   variables:
-    ROS_DISTRO: "kinetic"
+    ROS_DISTRO: "foxy"
     CATKIN_LINT: "true"
     UPSTREAM_WORKSPACE: "file"
-    ROSINSTALL_FILENAME: ".ci.rosinstall"
+    ROSINSTALL_FILENAME: ".ci.repos"
   script: .industrial_ci/gitlab.sh
 

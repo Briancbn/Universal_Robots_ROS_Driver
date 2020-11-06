@@ -9,7 +9,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: 'ros-industrial/industrial_ci@master'
       env:
-        ROS_DISTRO: melodic
+        ROS_DISTRO: foxy
         CLANG_FORMAT_CHECK: file
         CLANG_FORMAT_VERSION: "9"
 
@@ -19,27 +19,15 @@ jobs:
       fail-fast: false
       matrix:
         env:
-          - ROS_DISTRO: kinetic
+          - ROS_DISTRO: foxy
             ROS_REPO: main
-            UPSTREAM_WORKSPACE: .ci.rosinstall
+            UPSTREAM_WORKSPACE: .ci.repos
             DOCKER_RUN_OPTS: --network static_test_net
             BEFORE_INIT: 'apt-get update -qq && apt-get install -y iproute2 iputils-ping && ip addr && ping -c5 192.168.56.101'
             IMMEDIATE_TEST_OUTPUT: true
-          - ROS_DISTRO: melodic
-            ROS_REPO: main
-            UPSTREAM_WORKSPACE: .ci.rosinstall
-            DOCKER_RUN_OPTS: --network static_test_net
-            BEFORE_INIT: 'apt-get update -qq && apt-get install -y iproute2 iputils-ping && ip addr && ping -c5 192.168.56.101'
-            IMMEDIATE_TEST_OUTPUT: true
-          - ROS_DISTRO: kinetic
+          - ROS_DISTRO: foxy
             ROS_REPO: testing
-            UPSTREAM_WORKSPACE: .ci.rosinstall
-            DOCKER_RUN_OPTS: --network static_test_net
-            BEFORE_INIT: 'apt-get update -qq && apt-get install -y iproute2 iputils-ping && ip addr && ping -c5 192.168.56.101'
-            IMMEDIATE_TEST_OUTPUT: true
-          - ROS_DISTRO: melodic
-            ROS_REPO: testing
-            UPSTREAM_WORKSPACE: .ci.rosinstall
+            UPSTREAM_WORKSPACE: .ci.repos
             DOCKER_RUN_OPTS: --network static_test_net
             BEFORE_INIT: 'apt-get update -qq && apt-get install -y iproute2 iputils-ping && ip addr && ping -c5 192.168.56.101'
             IMMEDIATE_TEST_OUTPUT: true
