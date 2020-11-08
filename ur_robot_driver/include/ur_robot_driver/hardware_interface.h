@@ -27,34 +27,36 @@
 #ifndef UR_DRIVER_HARDWARE_INTERFACE_H_INCLUDED
 #define UR_DRIVER_HARDWARE_INTERFACE_H_INCLUDED
 
-#include <hardware_interface/robot_hw.h>
-#include <hardware_interface/force_torque_sensor_interface.h>
-#include <hardware_interface/joint_command_interface.h>
-#include <hardware_interface/joint_state_interface.h>
+#include <hardware_interface/robot_hardware.hpp>
+#include <rclcpp/rclcpp.hpp>
+// #include <hardware_interface/force_torque_sensor_interface.h>
 #include <algorithm>
-#include <std_msgs/Bool.h>
-#include <std_msgs/Float64.h>
-#include <std_msgs/String.h>
-#include <std_srvs/Trigger.h>
-#include <realtime_tools/realtime_publisher.h>
-#include <tf2_msgs/TFMessage.h>
+#include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/float64.h>
+#include <std_msgs/msg/string.hpp>
+#include <std_srvs/srv/trigger.hpp>
+// #include <realtime_tools/realtime_publisher.h>
+#include <tf2_msgs/msg/tf_message.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+// #include <tf2_msgs/TFMessage.h>
+// #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-#include <ur_msgs/IOStates.h>
-#include <ur_msgs/ToolDataMsg.h>
-#include <ur_msgs/SetIO.h>
-#include <ur_msgs/SetSpeedSliderFraction.h>
+#include <ur_msgs/msg/io_states.hpp>
+#include <ur_msgs/msg/tool_data_msg.hpp>
+#include <ur_msgs/srv/set_io.hpp>
+#include <ur_msgs/srv/set_payload.hpp>
+#include <ur_msgs/srv/set_speed_slider_fraction.hpp>
 
-#include <ur_controllers/speed_scaling_interface.h>
-#include <ur_controllers/scaled_joint_command_interface.h>
+// #include <ur_controllers/speed_scaling_interface.h>
+// #include <ur_controllers/scaled_joint_command_interface.h>
 
 #include <ur_client_library/ur/ur_driver.h>
-#include <ur_robot_driver/dashboard_client_ros.h>
+// #include <ur_robot_driver/dashboard_client_ros.h>
 
-#include <ur_dashboard_msgs/RobotMode.h>
-#include <ur_dashboard_msgs/SafetyMode.h>
+#include <ur_dashboard_msgs/msg/robot_mode.hpp>
+#include <ur_dashboard_msgs/msg/safety_mode.hpp>
 
-#include <industrial_robot_status_interface/industrial_robot_status_interface.h>
+// #include <industrial_robot_status_interface/industrial_robot_status_interface.h>
 
 namespace ur_driver
 {
@@ -68,19 +70,23 @@ enum class PausingState
   RAMPUP
 };
 
+namespace hw = hardware_interface;
+
 /*!
  * \brief The HardwareInterface class handles the interface between the ROS system and the main
  * driver. It contains the read and write methods of the main control loop and registers various ROS
  * topics and services.
  */
-class HardwareInterface : public hardware_interface::RobotHW
+class HardwareInterface : public hw::RobotHardware
 {
 public:
   /*!
    * \brief Creates a new HardwareInterface object.
    */
   HardwareInterface();
-  virtual ~HardwareInterface() = default;
+  virtual ~HardwareInterface();
+
+  using RobotHardware::init;
   /*!
    * \brief Handles the setup functionality for the ROS interface. This includes parsing ROS
    * parameters, creating interfaces, starting the main driver and advertising ROS services.
@@ -90,7 +96,9 @@ public:
    *
    * \returns True, if the setup was performed successfully
    */
-  virtual bool init(ros::NodeHandle& root_nh, ros::NodeHandle& robot_hw_nh) override;
+  virtual bool initUR(rclcpp::Node::SharedPtr& root_nh, rclcpp::Node::SharedPtr& robot_hw_nh);
+
+  using RobotHardware::read;
   /*!
    * \brief Read method of the control loop. Reads a RTDE package from the robot and handles and
    * publishes the information as needed.
@@ -98,7 +106,9 @@ public:
    * \param time Current time
    * \param period Duration of current control loop iteration
    */
-  virtual void read(const ros::Time& time, const ros::Duration& period) override;
+  virtual bool read(const rclcpp::Time& time, const rclcpp::Duration& period);
+
+  using RobotHardware::write;
   /*!
    * \brief Write method of the control loop. Writes target joint positions to the robot to be read
    * by its URCaps program.
@@ -106,7 +116,7 @@ public:
    * \param time Current time
    * \param period Duration of current control loop iteration
    */
-  virtual void write(const ros::Time& time, const ros::Duration& period) override;
+  virtual bool write(const rclcpp::Time& time, const rclcpp::Duration& period);
   /*!
    * \brief Preparation to start and stop loaded controllers.
    *
@@ -115,16 +125,16 @@ public:
    *
    * \returns True, if the controllers can be switched
    */
-  virtual bool prepareSwitch(const std::list<hardware_interface::ControllerInfo>& start_list,
-                             const std::list<hardware_interface::ControllerInfo>& stop_list) override;
+  virtual bool prepareSwitch(const std::list<std::string>& start_list,
+                             const std::list<std::string>& stop_list);
   /*!
    * \brief Starts and stops controllers.
    *
    * \param start_list List of controllers to start
    * \param stop_list List of controllers to stop
    */
-  virtual void doSwitch(const std::list<hardware_interface::ControllerInfo>& start_list,
-                        const std::list<hardware_interface::ControllerInfo>& stop_list) override;
+  virtual void doSwitch(const std::list<std::string>& start_list,
+                        const std::list<std::string>& stop_list);
 
   /*!
    * \brief Getter for the current control frequency
@@ -168,7 +178,7 @@ protected:
    *
    * \param timestamp Timestamp of read data
    */
-  void extractToolPose(const ros::Time& timestamp);
+  void extractToolPose(const rclcpp::Time& timestamp);
 
   /*!
    * \brief Publishes the tool pose to the tf system
@@ -187,7 +197,9 @@ protected:
    */
   void extractRobotStatus();
 
-  bool stopControl(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res);
+  void stopControl(const std::shared_ptr<rmw_request_id_t> req_header,
+                   const std_srvs::srv::Trigger::Request::SharedPtr req,
+                   const std_srvs::srv::Trigger::Response::SharedPtr res);
 
   template <typename T>
   void readData(const std::unique_ptr<urcl::rtde_interface::DataPackage>& data_pkg, const std::string& var_name,
@@ -196,14 +208,25 @@ protected:
   void readBitsetData(const std::unique_ptr<urcl::rtde_interface::DataPackage>& data_pkg, const std::string& var_name,
                       std::bitset<N>& data);
 
-  bool setSpeedSlider(ur_msgs::SetSpeedSliderFractionRequest& req, ur_msgs::SetSpeedSliderFractionResponse& res);
-  bool setIO(ur_msgs::SetIORequest& req, ur_msgs::SetIOResponse& res);
-  bool resendRobotProgram(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res);
-  bool zeroFTSensor(std_srvs::TriggerRequest& req, std_srvs::TriggerResponse& res);
-  void commandCallback(const std_msgs::StringConstPtr& msg);
+  void setSpeedSlider(const std::shared_ptr<rmw_request_id_t> req_header,
+                      const ur_msgs::srv::SetSpeedSliderFraction::Request::SharedPtr req,
+                      const ur_msgs::srv::SetSpeedSliderFraction::Response::SharedPtr res);
+
+  void setIO(const std::shared_ptr<rmw_request_id_t> req_header,
+             const ur_msgs::srv::SetIO::Request::SharedPtr req,
+             const ur_msgs::srv::SetIO::Response::SharedPtr res);
+
+  void resendRobotProgram(const std::shared_ptr<rmw_request_id_t> req_header,
+                   const std_srvs::srv::Trigger::Request::SharedPtr req,
+                   const std_srvs::srv::Trigger::Response::SharedPtr res);
+
+  void zeroFTSensor(const std::shared_ptr<rmw_request_id_t> req_header,
+                   const std_srvs::srv::Trigger::Request::SharedPtr req,
+                   const std_srvs::srv::Trigger::Response::SharedPtr res);
+  void commandCallback(const std_msgs::msg::String::SharedPtr msg);
 
   std::unique_ptr<urcl::UrDriver> ur_driver_;
-  std::unique_ptr<DashboardClientROS> dashboard_client_;
+  // std::unique_ptr<DashboardClientROS> dashboard_client_;
 
   /*!
    * \brief Checks whether a resource list contains joints from this hardware interface
@@ -213,17 +236,19 @@ protected:
    */
   bool checkControllerClaims(const std::set<std::string>& claimed_resources);
 
-  ros::ServiceServer deactivate_srv_;
-  ros::ServiceServer tare_sensor_srv_;
-  ros::ServiceServer set_payload_srv_;
+  rclcpp::Node::SharedPtr robot_hw_nh_;
 
-  hardware_interface::JointStateInterface js_interface_;
-  ur_controllers::ScaledPositionJointInterface spj_interface_;
-  hardware_interface::PositionJointInterface pj_interface_;
-  ur_controllers::SpeedScalingInterface speedsc_interface_;
-  hardware_interface::VelocityJointInterface vj_interface_;
-  ur_controllers::ScaledVelocityJointInterface svj_interface_;
-  hardware_interface::ForceTorqueSensorInterface fts_interface_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr deactivate_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr tare_sensor_srv_;
+  rclcpp::Service<ur_msgs::srv::SetPayload>::SharedPtr set_payload_srv_;
+
+  // hardware_interface::JointStateInterface js_interface_;
+  // ur_controllers::ScaledPositionJointInterface spj_interface_;
+  // hardware_interface::PositionJointInterface pj_interface_;
+  // ur_controllers::SpeedScalingInterface speedsc_interface_;
+  // hardware_interface::VelocityJointInterface vj_interface_;
+  // ur_controllers::ScaledVelocityJointInterface svj_interface_;
+  // hardware_interface::ForceTorqueSensorInterface fts_interface_;
 
   urcl::vector6d_t joint_position_command_;
   urcl::vector6d_t joint_velocity_command_;
@@ -245,7 +270,7 @@ protected:
   double tool_temperature_;
   tf2::Vector3 tcp_force_;
   tf2::Vector3 tcp_torque_;
-  geometry_msgs::TransformStamped tcp_transform_;
+  geometry_msgs::msg::TransformStamped tcp_transform_;
   double speed_scaling_;
   double target_speed_fraction_;
   double speed_scaling_combined_;
@@ -255,19 +280,19 @@ protected:
   std::bitset<4> robot_status_bits_;
   std::bitset<11> safety_status_bits_;
 
-  std::unique_ptr<realtime_tools::RealtimePublisher<tf2_msgs::TFMessage>> tcp_pose_pub_;
-  std::unique_ptr<realtime_tools::RealtimePublisher<ur_msgs::IOStates>> io_pub_;
-  std::unique_ptr<realtime_tools::RealtimePublisher<ur_msgs::ToolDataMsg>> tool_data_pub_;
-  std::unique_ptr<realtime_tools::RealtimePublisher<ur_dashboard_msgs::RobotMode>> robot_mode_pub_;
-  std::unique_ptr<realtime_tools::RealtimePublisher<ur_dashboard_msgs::SafetyMode>> safety_mode_pub_;
+  // std::unique_ptr<realtime_tools::RealtimePublisher<tf2_msgs::TFMessage>> tcp_pose_pub_;
+  // std::unique_ptr<realtime_tools::RealtimePublisher<ur_msgs::IOStates>> io_pub_;
+  // std::unique_ptr<realtime_tools::RealtimePublisher<ur_msgs::ToolDataMsg>> tool_data_pub_;
+  // std::unique_ptr<realtime_tools::RealtimePublisher<ur_dashboard_msgs::RobotMode>> robot_mode_pub_;
+  // std::unique_ptr<realtime_tools::RealtimePublisher<ur_dashboard_msgs::SafetyMode>> safety_mode_pub_;
 
-  ros::ServiceServer set_speed_slider_srv_;
-  ros::ServiceServer set_io_srv_;
-  ros::ServiceServer resend_robot_program_srv_;
-  ros::Subscriber command_sub_;
+  rclcpp::Service<ur_msgs::srv::SetSpeedSliderFraction>::SharedPtr set_speed_slider_srv_;
+  rclcpp::Service<ur_msgs::srv::SetIO>::SharedPtr set_io_srv_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr resend_robot_program_srv_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr command_sub_;
 
-  industrial_robot_status_interface::RobotStatus robot_status_resource_{};
-  industrial_robot_status_interface::IndustrialRobotStatusInterface robot_status_interface_{};
+  // industrial_robot_status_interface::RobotStatus robot_status_resource_{};
+  // industrial_robot_status_interface::IndustrialRobotStatusInterface robot_status_interface_{};
 
   uint32_t runtime_state_;
   bool position_controller_running_;
@@ -278,7 +303,7 @@ protected:
 
   std::string tcp_link_;
   bool robot_program_running_;
-  ros::Publisher program_state_pub_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr program_state_pub_;
 
   bool controller_reset_necessary_;
   bool controllers_initialized_;
